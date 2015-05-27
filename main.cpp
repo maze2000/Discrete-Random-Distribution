@@ -4,7 +4,7 @@
 #include<stdlib.h>
 #include<limits.h>
 
-const int size = 10;
+const int size = 4;
 int table[255*size][4];
 unsigned int t[4];
 const int x = 255;
@@ -55,6 +55,7 @@ void initiate(std::pair<int, unsigned int>* a)
     }*/
 }
 
+/*
 void initiate2(std::pair<int, unsigned int>* a)
 {
     int counter = 0;
@@ -95,27 +96,23 @@ void initiate2(std::pair<int, unsigned int>* a)
     }
 
 }
+*/
 
 int generate(unsigned int random) {
   
     if(random < t[3])
         return table[random >> 24][3];
-    std::cout << "A" << std::endl;
     if(random < t[2])
         return table[(random-t[3]) >> 16][2];
-        std::cout << "A" << std::endl;
-
     if(random < t[1])
         return table[(random-t[2]) >> 8][1];
-        std::cout << "A" << std::endl;
-
-    //return table[random - t[1]][0];
     if(random < t[0])
         return table[random - t[1]][0];
-    return -1;
+    std::cout << "ERR" << std::endl;
+    return 0;
     
 }
-
+/*
 int generate2(unsigned int random) {
 
     if(table[random&255][3] >= 0)
@@ -128,21 +125,23 @@ int generate2(unsigned int random) {
         return j;
     return K[j];
 }
-
+*/
 int main() {
 
     std::pair<int,unsigned int> a[size];
-    for(int i = 0; i < 10; i++) {
-        a[i] = std::make_pair(i,INT_MAX);
+    for(int i = 0; i < size; i++) {
+        a[i] = std::make_pair(i+1,INT_MAX/size);
     }
-    
-    initiate2(a);
+    /*a[0].second = INT_MAX/size * 1/2;
+    a[1].second = INT_MAX/size * 1/2;
+    a[2].second = INT_MAX/size;
+    a[3].second = INT_MAX/size * 2;*/
+    initiate(a);
     int random;
     int sum = 0;
-    for(int i = 0; i < 10000; i++) {
-    random = generate2(rand());
-    sum += random;
-    std::cout << std::endl << random << std::endl << std::endl;
+    for(int i = 0; i < 100000; i++) {
+      random = generate(rand());
+      sum += random;
     }
     std::cout << sum << std::endl;
 }
