@@ -1,0 +1,194 @@
+#include<iostream>
+#include<utility>
+#include<cmath>
+#include<stdlib.h>
+#include<vector>
+#include<limits.h>
+
+class random_distribution {
+  
+  int size;
+  int (*table)[4];
+  unsigned int t[4];
+  static const int x = 255;
+  int* K;
+  double* V;
+  
+  //Table method
+  void initiate(std::pair<int, unsigned int>* a) {
+
+      for(int i = 0; i < 255*size; i++) {
+	  for(int j = 0; j < 4; j++)
+	      table[i][j] = -1;
+      }
+
+      int counter;
+      for(int k = 0; k < 4; k++)
+      {
+	  counter = 0;
+	  for(int i = 0; i < size; i++)
+	  {
+	      for(int j = 0; j < (int) ((a[i].second >> k*8) & x); j++)
+	      {
+		      table[counter][k] = a[i].first;
+		      counter++;
+	      }
+	  }
+	  t[k] = counter;
+	  //std::cout << counter << std::endl;
+      }
+      t[3] = t[3] << 24;
+      t[2] = t[3] + (t[2] << 16);
+      t[1] = t[2] + (t[1] << 8);
+      t[0] = t[1] + t[0];
+      
+  }
+
+  void initiate(std::vector<double> a) {
+    
+    std::pair<int, unsigned int> b[size];
+    for(int i = 0; i < size; i++) {
+      b[i].first = i;
+      b[i].second = a[i] * INT_MAX;
+    }
+    initiate(b);
+  }
+  
+  int generate(unsigned int random) {
+  
+    if(random < t[3])
+        return table[random >> 24][3];
+    if(random < t[2])
+        return table[(random-t[3]) >> 16][2];
+    if(random < t[1])
+        return table[(random-t[2]) >> 8][1];
+    if(random < t[0])
+        return table[random - t[1]][0];
+    //std::cout << "ERR" << std::endl;
+    return 0;
+  }
+  
+  //Table + square histogram
+  
+  void initiate2(std::vector<double> a) {
+    
+    std::pair<int, unsigned int> b[size];
+    for(int i = 0; i < size; i++) {
+      b[i].first = i;
+      b[i].second = a[i] * INT_MAX;
+    }
+    initiate2(b);
+  }
+  
+  void initiate2(std::pair<int, unsigned int>* a)
+{
+    int counter = 0;
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < (int) ((a[i].second >> 24) & x); j++)
+        {
+                table[counter][3] = a[i].first-1;
+                counter++;
+        }
+    }
+    for(; counter < 255*size; counter++)
+        table[counter][3] = -1;
+    
+    double b[size];
+    double sum = 0;
+    for(int i = 0; i < size; i++)
+    {
+      b[i] = ((double) a[i].second) / INT_MAX;
+      sum += b[i];
+    }
+    
+    double avg = 1.0/size;
+    int max = 0;
+    int min = 0;
+
+    for(int i = 0; i < size; i++)
+    {
+        K[i] = i;
+        V[i] = (i+1) * avg;
+    }
+    //dispVK();
+    for(int i = 0; i < size; i++)
+    {
+        for(int j = 0; j < size; j++)
+        {
+            if (b[j] >= b[max])
+                max = j;
+            if (b[j] < b[min])
+                min = j;
+        }
+        K[min] = max;
+        V[min] = (min) * avg + b[min];
+        b[max] = b[max] - (avg-b[min]);
+        b[min] = avg;
+  
+    }
+  }
+  
+  int generate2(unsigned int random) {
+    if(table[random&255][3] >= 0)
+        return table[random&255][3];
+    
+    double i = ((double) random)/INT_MAX;
+    int j = size*i;
+    if (i < V[j]) {
+        return j;
+    }
+    return K[j];
+  }
+  
+  //Akkumulierte Wahrscheinlichkeit und binäre Suche
+  std::vector<int> distribution;
+  void initiate3(std::vector<double> a) {
+  
+    distribution.push_back(a[0] * INT_MAX);
+    for(int i = 1; i < a.size(); i++)
+      distribution.push_back(distribution[i-1] + a[i] * INT_MAX);
+        
+  }
+  int generate3(unsigned int d) {
+    
+    int i = 0;
+    int j = size-1;
+    int mid = (i+j)/2;
+    while(i!=j && i+1 != j) {
+    //  std::cout << "i: " << i << "; j: " << j << ", mid: " << mid << std::endl;
+      if(distribution[mid] < d) 
+	i = mid;
+      else
+	j = mid;
+      mid = (i+j)/2;
+    }    
+    return j;
+  }
+
+  
+public:
+  random_distribution(std::vector<double> distribution, int method = 1) {
+    size = distribution.size();
+    K = new int [size];
+    V = new double[size];
+    table = new int[255*size][4];
+    if (method == 1)
+      initiate(distribution);
+    else if (method == 2)
+      initiate2(distribution);
+    else
+      initiate3(distribution);
+  }
+  int dist() {
+    return generate(rand());
+  }  
+  int dist2() {
+    return generate2(rand());
+  }  
+  int dist3() {
+    return generate3(rand());
+  }
+  
+};
+
